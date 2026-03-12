@@ -4,57 +4,97 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, Mic, ChevronDown, Languages, Loader2, AlertCircle, Copy, Check, Trash2 } from 'lucide-react';
+import {
+  Globe,
+  Mic,
+  ChevronDown,
+  Languages,
+  Loader2,
+  AlertCircle,
+  Copy,
+  Check,
+  Trash2,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText, getTransliteration } from './services/sarvam';
 
-// Country and Language Data
+// Sarvam-supported countries and languages (UI grouping only)
 const countries = [
-  { name: 'India', languages: ['Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi'] },
-  { name: 'United States', languages: ['English', 'Spanish'] },
-  { name: 'France', languages: ['French'] },
-  { name: 'Germany', languages: ['German'] },
-  { name: 'Spain', languages: ['Spanish', 'Catalan', 'Galician', 'Basque'] },
-  { name: 'China', languages: ['Mandarin', 'Cantonese'] },
-  { name: 'Japan', languages: ['Japanese'] },
-  { name: 'South Korea', languages: ['Korean'] },
-  { name: 'Italy', languages: ['Italian'] },
-  { name: 'Brazil', languages: ['Portuguese'] },
-  { name: 'Russia', languages: ['Russian'] },
-  { name: 'United Kingdom', languages: ['English'] },
-  { name: 'United Arab Emirates', languages: ['Arabic'] },
+  {
+    name: 'India',
+    languages: [
+      'Hindi',
+      'Tamil',
+      'Telugu',
+      'Kannada',
+      'Malayalam',
+      'Bengali',
+      'Marathi',
+      'Gujarati',
+      'Punjabi',
+      'Odia',
+      'Urdu',
+      'Assamese',
+      'Sanskrit',
+    ],
+  },
+  {
+    name: 'United States',
+    languages: ['English'],
+  },
+  {
+    name: 'United Kingdom',
+    languages: ['English'],
+  },
 ];
 
-const languageCodes: Record<string, string> = {
-  'Hindi': 'hi-IN',
-  'Tamil': 'ta-IN',
-  'Telugu': 'te-IN',
-  'Kannada': 'kn-IN',
-  'Malayalam': 'ml-IN',
-  'Bengali': 'bn-IN',
-  'Marathi': 'mr-IN',
-  'Gujarati': 'gu-IN',
-  'Punjabi': 'pa-IN',
-  'English': 'en-US',
-  'Spanish': 'es-ES',
-  'French': 'fr-FR',
-  'German': 'de-DE',
-  'Mandarin': 'zh-CN',
-  'Cantonese': 'zh-HK',
-  'Japanese': 'ja-JP',
-  'Korean': 'ko-KR',
-  'Italian': 'it-IT',
-  'Portuguese': 'pt-BR',
-  'Russian': 'ru-RU',
-  'Arabic': 'ar-SA',
+// Browser speech recognition language codes
+const speechRecognitionCodes: Record<string, string> = {
+  Hindi: 'hi-IN',
+  Tamil: 'ta-IN',
+  Telugu: 'te-IN',
+  Kannada: 'kn-IN',
+  Malayalam: 'ml-IN',
+  Bengali: 'bn-IN',
+  Marathi: 'mr-IN',
+  Gujarati: 'gu-IN',
+  Punjabi: 'pa-IN',
+  Odia: 'od-IN',
+  Urdu: 'ur-IN',
+  Assamese: 'as-IN',
+  Sanskrit: 'sa-IN',
+  English: 'en-IN',
 };
+
+// Sarvam translation language codes
+const sarvamLanguageCodes: Record<string, string> = {
+  Hindi: 'hi-IN',
+  Tamil: 'ta-IN',
+  Telugu: 'te-IN',
+  Kannada: 'kn-IN',
+  Malayalam: 'ml-IN',
+  Bengali: 'bn-IN',
+  Marathi: 'mr-IN',
+  Gujarati: 'gu-IN',
+  Punjabi: 'pa-IN',
+  Odia: 'od-IN',
+  Urdu: 'ur-IN',
+  Assamese: 'as-IN',
+  Sanskrit: 'sa-IN',
+  English: 'en-IN',
+};
+
+function getSarvamLanguageCode(language: string | null, fallback = 'auto') {
+  if (!language) return fallback;
+  return sarvamLanguageCodes[language] || fallback;
+}
 
 export default function App() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [targetCountry, setTargetCountry] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState<string | null>(null);
-  
+
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [translation, setTranslation] = useState('');
@@ -64,7 +104,7 @@ export default function App() {
   const [showPronunciation, setShowPronunciation] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [showCountryList, setShowCountryList] = useState(false);
   const [showLanguageList, setShowLanguageList] = useState(false);
   const [showTargetCountryList, setShowTargetCountryList] = useState(false);
@@ -73,8 +113,9 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Initialize Speech Recognition
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
@@ -100,61 +141,81 @@ export default function App() {
     }
   }, []);
 
-  // Update recognition language when source language changes
+  // Update speech recognition language when source language changes
   useEffect(() => {
     if (recognitionRef.current && selectedLanguage) {
-      recognitionRef.current.lang = languageCodes[selectedLanguage] || 'en-US';
+      recognitionRef.current.lang = speechRecognitionCodes[selectedLanguage] || 'en-IN';
     }
   }, [selectedLanguage]);
 
-  const performTranslation = async (text: string, sourceLang: string, targetLang: string) => {
-    if (!sourceLang || !targetLang) {
+  const performTranslation = async (
+    text: string,
+    sourceLangName: string,
+    targetLangName: string
+  ) => {
+    if (!sourceLangName || !targetLangName) {
       setError('Please select both source and target languages first.');
       return;
     }
 
+    const sourceLangCode = getSarvamLanguageCode(sourceLangName, 'auto');
+    const targetLangCode = getSarvamLanguageCode(targetLangName, 'en-IN');
+
     setIsTranslating(true);
+    setIsTranslatingPronunciation(false);
+    setTranslation('');
     setTransliteration('');
     setShowPronunciation(false);
     setError(null);
+
     try {
-      const result = await translateText(text, sourceLang, targetLang);
+      const result = await translateText(text, sourceLangCode, targetLangCode);
       setTranslation(result);
-      
-      // Also get transliteration
+
+      // Try transliteration for the translated output
       setIsTranslatingPronunciation(true);
       try {
-        const pron = await getTransliteration(result, targetLang);
+        const pron = await getTransliteration(result, targetLangCode);
         setTransliteration(pron);
       } catch (pErr) {
         console.error('Pronunciation error:', pErr);
+        setTransliteration('');
       } finally {
         setIsTranslatingPronunciation(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Translation error:', err);
-      setError('Translation failed. Please try again.');
+      setError(err?.message || 'Translation failed. Please try again.');
     } finally {
       setIsTranslating(false);
     }
   };
 
   const handleTranslate = (text: string) => {
+    if (!text.trim()) return;
+
     if (selectedLanguage && targetLanguage) {
       performTranslation(text, selectedLanguage, targetLanguage);
+    } else {
+      setError('Please select both source and target languages first.');
     }
   };
 
   const startRecording = () => {
     if (!recognitionRef.current) return;
+
     if (!selectedLanguage) {
       setError('Please select a source language first.');
       return;
     }
+
     setTranscription('');
     setTranslation('');
+    setTransliteration('');
+    setShowPronunciation(false);
     setError(null);
     setIsRecording(true);
+
     try {
       recognitionRef.current.start();
     } catch (err) {
@@ -166,27 +227,34 @@ export default function App() {
 
   const stopRecording = () => {
     if (!recognitionRef.current) return;
+
     try {
       recognitionRef.current.stop();
     } catch (err) {
       console.error('Stop recording error:', err);
     }
+
     setIsRecording(false);
   };
 
   const handleCopy = () => {
     if (!transcription || !translation) return;
+
     let textToCopy = `${selectedLanguage}: ${transcription}\n${targetLanguage}: ${translation}`;
     if (transliteration) {
       textToCopy += `\n(Pronunciation: ${transliteration})`;
     }
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }).catch(err => {
-      console.error('Copy failed:', err);
-      setError('Failed to copy text.');
-    });
+
+    navigator.clipboard
+      .writeText(textToCopy)
+      .then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Copy failed:', err);
+        setError('Failed to copy text.');
+      });
   };
 
   const handleClear = () => {
@@ -208,6 +276,7 @@ export default function App() {
   const selectLanguage = (lang: string) => {
     setSelectedLanguage(lang);
     setShowLanguageList(false);
+
     if (transcription && targetLanguage) {
       performTranslation(transcription, lang, targetLanguage);
     }
@@ -223,6 +292,7 @@ export default function App() {
   const selectTargetLanguage = (lang: string) => {
     setTargetLanguage(lang);
     setShowTargetLanguageList(false);
+
     if (transcription && selectedLanguage) {
       performTranslation(transcription, selectedLanguage, lang);
     }
@@ -232,27 +302,30 @@ export default function App() {
     <div className="min-h-screen bg-[#f5f5f5] text-[#1a1a1a] font-sans p-4 md:p-8 flex flex-col items-center">
       <div className="w-full max-w-2xl bg-white rounded-[24px] shadow-sm overflow-hidden border border-black/5">
         {/* Header */}
-        <header className="p-6 border-bottom border-black/5 flex items-center justify-between">
+        <header className="p-6 border-b border-black/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
               <Languages className="text-white w-5 h-5" />
             </div>
             <h1 className="text-xl font-semibold tracking-tight">Voice Translator</h1>
           </div>
+
           {error && (
-            <div className="flex items-center gap-2 text-red-500 text-sm font-medium">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
+            <div className="flex items-center gap-2 text-red-500 text-sm font-medium max-w-[55%] text-right">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="truncate">{error}</span>
             </div>
           )}
         </header>
 
         <main className="p-6 space-y-8">
-          {/* Step 1: Select Source & Target Languages */}
+          {/* Source Language Selection */}
           <section className="space-y-6">
-            {/* Source Language Selection */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest opacity-50 ml-1">Source Language (Select Country first)</label>
+              <label className="text-xs font-bold uppercase tracking-widest opacity-50 ml-1">
+                Source Language (Select Country first)
+              </label>
+
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                   <button
@@ -263,9 +336,11 @@ export default function App() {
                       <Globe className="w-5 h-5 opacity-50" />
                       <span className="font-medium">{selectedCountry || 'Select Country'}</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showCountryList ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${showCountryList ? 'rotate-180' : ''}`}
+                    />
                   </button>
-                  
+
                   <AnimatePresence>
                     {showCountryList && (
                       <motion.div
@@ -298,7 +373,9 @@ export default function App() {
                       <Languages className="w-5 h-5 opacity-50" />
                       <span className="font-medium">{selectedLanguage || 'Select Language'}</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showLanguageList ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${showLanguageList ? 'rotate-180' : ''}`}
+                    />
                   </button>
 
                   <AnimatePresence>
@@ -309,15 +386,17 @@ export default function App() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute z-30 top-full left-0 right-0 mt-2 bg-white border border-black/5 rounded-xl shadow-lg max-h-60 overflow-y-auto"
                       >
-                        {countries.find(c => c.name === selectedCountry)?.languages.map((lang) => (
-                          <button
-                            key={lang}
-                            onClick={() => selectLanguage(lang)}
-                            className="w-full text-left px-4 py-3 hover:bg-[#f5f5f5] transition-colors border-b border-black/5 last:border-0"
-                          >
-                            {lang}
-                          </button>
-                        ))}
+                        {countries
+                          .find((c) => c.name === selectedCountry)
+                          ?.languages.map((lang) => (
+                            <button
+                              key={lang}
+                              onClick={() => selectLanguage(lang)}
+                              className="w-full text-left px-4 py-3 hover:bg-[#f5f5f5] transition-colors border-b border-black/5 last:border-0"
+                            >
+                              {lang}
+                            </button>
+                          ))}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -327,7 +406,10 @@ export default function App() {
 
             {/* Target Language Selection */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest opacity-50 ml-1">Translate to which language?</label>
+              <label className="text-xs font-bold uppercase tracking-widest opacity-50 ml-1">
+                Translate to which language?
+              </label>
+
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                   <button
@@ -336,11 +418,17 @@ export default function App() {
                   >
                     <div className="flex items-center gap-3">
                       <Globe className="w-5 h-5 opacity-50" />
-                      <span className="font-medium">{targetCountry || 'Select Target Country'}</span>
+                      <span className="font-medium">
+                        {targetCountry || 'Select Target Country'}
+                      </span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showTargetCountryList ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        showTargetCountryList ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
-                  
+
                   <AnimatePresence>
                     {showTargetCountryList && (
                       <motion.div
@@ -371,9 +459,15 @@ export default function App() {
                   >
                     <div className="flex items-center gap-3">
                       <Languages className="w-5 h-5 opacity-50" />
-                      <span className="font-medium">{targetLanguage || 'Select Target Language'}</span>
+                      <span className="font-medium">
+                        {targetLanguage || 'Select Target Language'}
+                      </span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showTargetLanguageList ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        showTargetLanguageList ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
 
                   <AnimatePresence>
@@ -384,15 +478,17 @@ export default function App() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute z-20 top-full left-0 right-0 mt-2 bg-white border border-black/5 rounded-xl shadow-lg max-h-60 overflow-y-auto"
                       >
-                        {countries.find(c => c.name === targetCountry)?.languages.map((lang) => (
-                          <button
-                            key={lang}
-                            onClick={() => selectTargetLanguage(lang)}
-                            className="w-full text-left px-4 py-3 hover:bg-[#f5f5f5] transition-colors border-b border-black/5 last:border-0"
-                          >
-                            {lang}
-                          </button>
-                        ))}
+                        {countries
+                          .find((c) => c.name === targetCountry)
+                          ?.languages.map((lang) => (
+                            <button
+                              key={lang}
+                              onClick={() => selectTargetLanguage(lang)}
+                              className="w-full text-left px-4 py-3 hover:bg-[#f5f5f5] transition-colors border-b border-black/5 last:border-0"
+                            >
+                              {lang}
+                            </button>
+                          ))}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -401,13 +497,15 @@ export default function App() {
             </div>
           </section>
 
-          {/* Step 2: Voice Input */}
+          {/* Voice Input */}
           <section className="flex flex-col items-center gap-6">
             <div className="w-full p-6 bg-[#f9f9f9] rounded-2xl border border-black/5 min-h-[120px] flex flex-col justify-center">
               {transcription ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest opacity-50">{selectedLanguage} (Original)</span>
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-50">
+                      {selectedLanguage} (Original)
+                    </span>
                   </div>
                   <p className="text-lg text-center font-medium leading-relaxed">{transcription}</p>
                 </div>
@@ -428,12 +526,13 @@ export default function App() {
             >
               <Mic className="text-white w-8 h-8" />
             </button>
+
             <p className="text-sm text-[#9e9e9e] font-medium uppercase tracking-wider">
               {isRecording ? 'Listening...' : 'Hold to Speak'}
             </p>
           </section>
 
-          {/* Step 3: Translation & Playback */}
+          {/* Translation Output */}
           <AnimatePresence>
             {(isTranslating || translation) && (
               <motion.section
@@ -450,7 +549,9 @@ export default function App() {
                   ) : (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-widest opacity-50">{targetLanguage} (Translated)</span>
+                        <span className="text-xs font-bold uppercase tracking-widest opacity-50">
+                          {targetLanguage} (Translated)
+                        </span>
                       </div>
                       <p className="text-2xl font-light leading-snug">{translation}</p>
                     </div>
@@ -468,9 +569,11 @@ export default function App() {
                           onClick={() => setShowPronunciation(!showPronunciation)}
                           className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2"
                         >
-                          {showPronunciation ? 'Hide Pronunciation' : 'Read it in other language with English letters'}
+                          {showPronunciation
+                            ? 'Hide Pronunciation'
+                            : 'Read it in other language with English letters'}
                         </button>
-                        
+
                         <AnimatePresence>
                           {showPronunciation && (
                             <motion.div
@@ -484,9 +587,13 @@ export default function App() {
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                   <span className="text-sm italic">Generating pronunciation...</span>
                                 </div>
-                              ) : (
+                              ) : transliteration ? (
                                 <p className="text-lg font-medium text-emerald-400 italic">
                                   "{transliteration}"
+                                </p>
+                              ) : (
+                                <p className="text-sm italic opacity-70">
+                                  Pronunciation not available for this language.
                                 </p>
                               )}
                             </motion.div>
@@ -495,8 +602,7 @@ export default function App() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
-                  {/* Decorative background element */}
+
                   <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none" />
                 </div>
 
