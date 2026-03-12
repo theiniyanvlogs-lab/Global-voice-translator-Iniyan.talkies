@@ -1,0 +1,5 @@
+{
+  "name": "Global Voice Translator",
+  "description": "Select a country and language, record your voice, and get instant translations with text-to-speech output.",
+  "requestFramePermissions": ["microphone"]
+}
