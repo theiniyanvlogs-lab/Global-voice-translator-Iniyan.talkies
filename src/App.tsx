@@ -141,7 +141,7 @@ export default function App() {
     }
   }, []);
 
-  // Update speech recognition language when source language changes
+  // Update browser speech recognition language when source language changes
   useEffect(() => {
     if (recognitionRef.current && selectedLanguage) {
       recognitionRef.current.lang = speechRecognitionCodes[selectedLanguage] || 'en-IN';
@@ -169,17 +169,24 @@ export default function App() {
     setError(null);
 
     try {
+      // 1) Main translation
       const result = await translateText(text, sourceLangCode, targetLangCode);
       setTranslation(result);
 
-      // Try transliteration for the translated output
+      // 2) Real pronunciation fix:
+      // Convert translated script into ENGLISH LETTERS (Roman pronunciation)
+      // Example: Telugu text -> en-IN transliteration
       setIsTranslatingPronunciation(true);
       try {
-        const pron = await getTransliteration(result, targetLangCode);
+        const pron = await getTransliteration(result, targetLangCode, 'en-IN');
         setTransliteration(pron);
+        if (pron) {
+          setShowPronunciation(true);
+        }
       } catch (pErr) {
         console.error('Pronunciation error:', pErr);
         setTransliteration('');
+        setShowPronunciation(false);
       } finally {
         setIsTranslatingPronunciation(false);
       }
@@ -557,9 +564,9 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Pronunciation Section */}
+                  {/* Pronunciation Section: only show if loading or available */}
                   <AnimatePresence>
-                    {translation && !isTranslating && (
+                    {translation && !isTranslating && (isTranslatingPronunciation || transliteration) && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -571,7 +578,7 @@ export default function App() {
                         >
                           {showPronunciation
                             ? 'Hide Pronunciation'
-                            : 'Read it in other language with English letters'}
+                            : 'Read it in English letters'}
                         </button>
 
                         <AnimatePresence>
@@ -587,13 +594,9 @@ export default function App() {
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                   <span className="text-sm italic">Generating pronunciation...</span>
                                 </div>
-                              ) : transliteration ? (
+                              ) : (
                                 <p className="text-lg font-medium text-emerald-400 italic">
                                   "{transliteration}"
-                                </p>
-                              ) : (
-                                <p className="text-sm italic opacity-70">
-                                  Pronunciation not available for this language.
                                 </p>
                               )}
                             </motion.div>
