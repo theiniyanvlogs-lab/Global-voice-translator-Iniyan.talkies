@@ -173,18 +173,16 @@ export default function App() {
       const result = await translateText(text, sourceLangCode, targetLangCode);
       setTranslation(result);
 
-      // 2) Real pronunciation fix:
-      // Convert translated script into ENGLISH LETTERS (Roman pronunciation)
-      // Example: Telugu text -> en-IN transliteration
+      // 2) Roman transliteration (best effort)
       setIsTranslatingPronunciation(true);
       try {
-        const pron = await getTransliteration(result, targetLangCode, 'en-IN');
-        setTransliteration(pron);
-        if (pron) {
+        const roman = await getTransliteration(result, targetLangCode, 'en-IN');
+        setTransliteration(roman);
+        if (roman) {
           setShowPronunciation(true);
         }
       } catch (pErr) {
-        console.error('Pronunciation error:', pErr);
+        console.error('Roman transliteration error:', pErr);
         setTransliteration('');
         setShowPronunciation(false);
       } finally {
@@ -249,7 +247,7 @@ export default function App() {
 
     let textToCopy = `${selectedLanguage}: ${transcription}\n${targetLanguage}: ${translation}`;
     if (transliteration) {
-      textToCopy += `\n(Pronunciation: ${transliteration})`;
+      textToCopy += `\n(Roman transliteration: ${transliteration})`;
     }
 
     navigator.clipboard
@@ -564,46 +562,50 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Pronunciation Section: only show if loading or available */}
+                  {/* Roman Transliteration Section: only show if loading or available */}
                   <AnimatePresence>
-                    {translation && !isTranslating && (isTranslatingPronunciation || transliteration) && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        className="mt-4 pt-4 border-t border-white/10"
-                      >
-                        <button
-                          onClick={() => setShowPronunciation(!showPronunciation)}
-                          className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2"
+                    {translation &&
+                      !isTranslating &&
+                      (isTranslatingPronunciation || transliteration) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          className="mt-4 pt-4 border-t border-white/10"
                         >
-                          {showPronunciation
-                            ? 'Hide Pronunciation'
-                            : 'Read it in English letters'}
-                        </button>
+                          <button
+                            onClick={() => setShowPronunciation(!showPronunciation)}
+                            className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2"
+                          >
+                            {showPronunciation
+                              ? 'Hide Roman Transliteration'
+                              : 'Roman Transliteration (Approx.)'}
+                          </button>
 
-                        <AnimatePresence>
-                          {showPronunciation && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              className="mt-2"
-                            >
-                              {isTranslatingPronunciation ? (
-                                <div className="flex items-center gap-2 opacity-50">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span className="text-sm italic">Generating pronunciation...</span>
-                                </div>
-                              ) : (
-                                <p className="text-lg font-medium text-emerald-400 italic">
-                                  "{transliteration}"
-                                </p>
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    )}
+                          <AnimatePresence>
+                            {showPronunciation && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                className="mt-2"
+                              >
+                                {isTranslatingPronunciation ? (
+                                  <div className="flex items-center gap-2 opacity-50">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span className="text-sm italic">
+                                      Generating Roman transliteration...
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <p className="text-lg font-medium text-emerald-400 italic">
+                                    "{transliteration}"
+                                  </p>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      )}
                   </AnimatePresence>
 
                   <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none" />
