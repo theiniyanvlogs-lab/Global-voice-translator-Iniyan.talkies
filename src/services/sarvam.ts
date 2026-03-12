@@ -125,14 +125,18 @@ export async function translateText(
 }
 
 /**
- * Real pronunciation / Roman transliteration:
+ * Roman transliteration (best effort):
  *
  * Example:
  * input Telugu text -> sourceLanguageCode = 'te-IN'
  * targetLanguageCode = 'en-IN'
  *
  * Output:
- * Roman/English-letter pronunciation if supported by Sarvam
+ * Roman/English-letter transliteration if supported by Sarvam
+ *
+ * IMPORTANT:
+ * spoken_form is FALSE here to avoid mixed-language "smart" spoken rewrites.
+ * We want cleaner script-to-Roman conversion, not paraphrased spoken output.
  */
 export async function getTransliteration(
   text: string,
@@ -153,7 +157,7 @@ export async function getTransliteration(
     input: cleanInput,
     source_language_code: sourceLanguageCode,
     target_language_code: targetLanguageCode,
-    spoken_form: true,
+    spoken_form: false,
     model: 'mayura:v1',
   };
 
