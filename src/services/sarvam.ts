@@ -41,6 +41,8 @@ async function postJson<T = any>(endpoint: string, body: Record<string, any>): P
       data?.error?.message ||
       data?.message ||
       data?.detail ||
+      data?.errors?.[0]?.message ||
+      JSON.stringify(data) ||
       `Sarvam API error (${res.status})`;
 
     throw new Error(message);
@@ -57,6 +59,8 @@ function parseTranslateResponse(data: any): string {
   return (
     cleanText(data?.translated_text) ||
     cleanText(data?.translation) ||
+    cleanText(data?.translations?.[0]?.translated_text) ||
+    cleanText(data?.translations?.[0]?.text) ||
     cleanText(data?.output?.translated_text) ||
     cleanText(data?.result?.translated_text) ||
     cleanText(data?.data?.translated_text) ||
@@ -68,6 +72,8 @@ function parseTransliterateResponse(data: any): string {
   return (
     cleanText(data?.transliterated_text) ||
     cleanText(data?.transliteration) ||
+    cleanText(data?.translations?.[0]?.transliterated_text) ||
+    cleanText(data?.translations?.[0]?.text) ||
     cleanText(data?.output?.transliterated_text) ||
     cleanText(data?.result?.transliterated_text) ||
     cleanText(data?.data?.transliterated_text) ||
@@ -76,16 +82,30 @@ function parseTransliterateResponse(data: any): string {
 }
 
 /**
- * sourceLanguage / targetLanguage should be codes like:
- * auto, en-IN, ta-IN, hi-IN, te-IN, ml-IN, kn-IN
+ * Translation:
+ * sourceLanguageCode examples:
+ * auto, ta-IN, hi-IN, te-IN, en-IN
+ *
+ * targetLanguageCode examples:
+ * ta-IN, hi-IN, te-IN, en-IN
  */
 export async function translateText(
   text: string,
   sourceLanguageCode: string,
   targetLanguageCode: string
-) {
+): Promise<string> {
+  const cleanInput = text?.trim();
+
+  if (!cleanInput) {
+    throw new Error('No text provided for translation.');
+  }
+
+  if (!targetLanguageCode) {
+    throw new Error('Target language code is required.');
+  }
+
   const payload = {
-    input: text,
+    input: cleanInput,
     source_language_code: sourceLanguageCode || 'auto',
     target_language_code: targetLanguageCode,
     speaker_gender: 'Male',
@@ -97,6 +117,7 @@ export async function translateText(
   const translated = parseTranslateResponse(data);
 
   if (!translated) {
+    console.error('Unexpected Sarvam translate response:', data);
     throw new Error('Sarvam translate response did not contain translated text.');
   }
 
@@ -104,12 +125,34 @@ export async function translateText(
 }
 
 /**
- * languageCode should be like ta-IN / hi-IN / en-IN
+ * Real pronunciation / Roman transliteration:
+ *
+ * Example:
+ * input Telugu text -> sourceLanguageCode = 'te-IN'
+ * targetLanguageCode = 'en-IN'
+ *
+ * Output:
+ * Roman/English-letter pronunciation if supported by Sarvam
  */
-export async function getTransliteration(text: string, languageCode: string) {
+export async function getTransliteration(
+  text: string,
+  sourceLanguageCode: string,
+  targetLanguageCode: string = 'en-IN'
+): Promise<string> {
+  const cleanInput = text?.trim();
+
+  if (!cleanInput) {
+    throw new Error('No text provided for transliteration.');
+  }
+
+  if (!sourceLanguageCode) {
+    throw new Error('Source language code is required for transliteration.');
+  }
+
   const payload = {
-    input: text,
-    target_language_code: languageCode,
+    input: cleanInput,
+    source_language_code: sourceLanguageCode,
+    target_language_code: targetLanguageCode,
     spoken_form: true,
     model: 'mayura:v1',
   };
@@ -118,6 +161,7 @@ export async function getTransliteration(text: string, languageCode: string) {
   const transliterated = parseTransliterateResponse(data);
 
   if (!transliterated) {
+    console.error('Unexpected Sarvam transliterate response:', data);
     throw new Error('Sarvam transliteration response did not contain transliterated text.');
   }
 
